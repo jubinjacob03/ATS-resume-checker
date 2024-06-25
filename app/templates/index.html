@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ATS Resume Checker</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>ATS Resume Checker</h1>
+    <form action="/" method="post" enctype="multipart/form-data">
+        <label for="resume">Upload your resume:</label>
+        <input type="file" name="resume" id="resume" required>
+        <br>
+        <label for="keywords">Enter keywords (comma separated):</label>
+        <input type="text" name="keywords" id="keywords" required>
+        <br>
+        <button type="submit">Check Resume</button>
+    </form>
+</body>
+</html>
