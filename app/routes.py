@@ -1,21 +1,26 @@
-from flask import request, render_template, jsonify
-from werkzeug.utils import secure_filename
 import os
-import spacy
 import re
+import spacy
+from flask import Flask, request, render_template
+from werkzeug.utils import secure_filename
+import fitz  # PyMuPDF
 from docx import Document
-from . import create_app
+from transformers import pipeline
+
+def create_app():
+    app = Flask(__name__)
+    app.config['UPLOAD_FOLDER'] = 'uploads'
+    return app
 
 app = create_app()
-
-nlp = spacy.load("en_core_web_sm")
+nlp = spacy.load('en_core_web_sm')
+summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6", revision="a4f8f3e")
 
 def extract_text_from_docx(file_path):
     doc = Document(file_path)
     return "\n".join([para.text for para in doc.paragraphs])
 
 def extract_text_from_pdf(file_path):
-    import fitz  # PyMuPDF
     doc = fitz.open(file_path)
     text = ""
     for page in doc:
@@ -24,18 +29,27 @@ def extract_text_from_pdf(file_path):
 
 def check_formatting(text):
     formatting_issues = []
-    if re.search(r"\d{2,}/\d{2,}/\d{2,4}", text):
-        formatting_issues.append("Avoid using exact dates, use months and years instead.")
+    doc = nlp(text)
+    for ent in doc.ents:
+        if ent.label_ == "DATE" and re.search(r"\d{2,}/\d{2,}/\d{2,4}", ent.text):
+            formatting_issues.append(f"Avoid using exact dates like {ent.text}, use months and years instead.")
     return formatting_issues
 
 def check_sections(text):
     required_sections = ["experience", "education", "skills"]
-    missing_sections = [section for section in required_sections if section not in text.lower()]
+    missing_sections = []
+    doc = nlp(text.lower())
+    for section in required_sections:
+        if section not in [token.text for token in doc]:
+            missing_sections.append(section)
     return missing_sections
 
 def check_keywords(text, keywords):
-    doc = nlp(text)
-    found_keywords = [keyword for keyword in keywords if any(keyword.lower() in token.text.lower() for token in doc)]
+    found_keywords = []
+    doc = nlp(text.lower())
+    for keyword in keywords:
+        if keyword.lower() in [token.text for token in doc]:
+            found_keywords.append(keyword)
     return found_keywords
 
 def ats_check(file_path, keywords):
@@ -46,9 +60,12 @@ def ats_check(file_path, keywords):
     else:
         raise ValueError("Unsupported file format")
 
-    formatting_issues = check_formatting(text)
-    missing_sections = check_sections(text)
-    found_keywords = check_keywords(text, keywords)
+    # Summarize the text to extract the main points
+    summarized_text = summarizer(text, max_length=150, min_length=30, do_sample=False)[0]['summary_text']
+
+    formatting_issues = check_formatting(summarized_text)
+    missing_sections = check_sections(summarized_text)
+    found_keywords = check_keywords(summarized_text, keywords)
 
     score = len(found_keywords) / len(keywords) * 100
 
@@ -68,8 +85,12 @@ def index():
         if file.filename == '':
             return "No selected file"
         if file:
+            # Ensure the upload folder exists
+            if not os.path.exists(app.config['UPLOAD_FOLDER']):
+                os.makedirs(app.config['UPLOAD_FOLDER'])
+
             filename = secure_filename(file.filename)
-            file_path = os.path.join('uploads', filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(file_path)
 
             keywords = request.form['keywords'].split(',')
