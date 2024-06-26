@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>ATS Resume Checker - Results</title>
+  </head>
+  <body>
+    <div class="container">
+      <h1>ATS Resume Checker - Results</h1>
+      <p>Formatting Issues:</p>
+      <ul>
+        {% for issue in result.formatting_issues %}
+          <li>{{ issue }}</li>
+        {% endfor %}
+      </ul>
+      <p>Missing Sections:</p>
+      <ul>
+        {% for section in result.missing_sections %}
+          <li>{{ section }}</li>
+        {% endfor %}
+      </ul>
+      <p>Found Keywords:</p>
+      <ul>
+        {% for keyword in result.found_keywords %}
+          <li>{{ keyword }}</li>
+        {% endfor %}
+      </ul>
+      <p>Score: {{ result.score }}%</p>
+    </div>
+  </body>
+</html>
