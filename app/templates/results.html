@@ -8,6 +8,10 @@
   <body>
     <div class="container">
       <h1>ATS Resume Checker - Results</h1>
+      <p>Extracted Text:</p>
+      <div style="white-space: pre-wrap; border: 1px solid #ccc; padding: 10px;">
+        {{ result.extracted_text }}
+      </div>
       <p>Formatting Issues:</p>
       <ul>
         {% for issue in result.formatting_issues %}

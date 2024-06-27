@@ -73,7 +73,8 @@ def ats_check(file_path, keywords):
         "formatting_issues": formatting_issues,
         "missing_sections": missing_sections,
         "found_keywords": found_keywords,
-        "score": score
+        "score": score,
+        "extracted_text": text
     }
 
 @app.route('/', methods=['GET', 'POST'])
